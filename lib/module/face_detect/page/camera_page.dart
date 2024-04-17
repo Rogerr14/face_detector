@@ -6,11 +6,11 @@ import 'package:app_face/module/face_detect/utils/mlkit_utils.dart';
 import 'package:app_face/module/face_detect/provider/face_detector_provider.dart';
 
 import 'package:camerawesome/camerawesome_plugin.dart';
+
 import 'package:flutter/material.dart';
 // import 'package:flutter/rendering.dart';
 import 'package:google_mlkit_face_detection/google_mlkit_face_detection.dart';
 import 'package:provider/provider.dart';
-
 
 class CameraPage extends StatefulWidget {
   const CameraPage({super.key});
@@ -29,7 +29,7 @@ class _CameraPageState extends State<CameraPage> {
     enableTracking: true,
   );
   late final faceDetector = FaceDetector(options: options);
- 
+  late AnalysisController analysisController;
 
   @override
   void initState() {
@@ -37,25 +37,21 @@ class _CameraPageState extends State<CameraPage> {
     super.initState();
     
   }
+
   @override
   void activate() {
-    // TODO: implement activate
-
     super.activate();
   }
 
   @override
   void deactivate() {
-    // TODO: implement deactivate
-
     faceDetector.close();
     super.deactivate();
   }
 
   @override
   void dispose() {
-    // TODO: implement dispose
-    // analysisController!.stop();
+    analysisController.stop();
     faceDetector.close();
     super.dispose();
   }
@@ -64,10 +60,9 @@ class _CameraPageState extends State<CameraPage> {
   String message = '';
   List<Face> face = [];
   bool isActive = false;
-  bool hasId = false;
-  int? trackId;
-      int llamada = 0;
-  bool analyze = true ; 
+  // bool hasId = false;
+  // int? trackId;
+  bool analyze = false;
 
   // final int numberTest = Random().nextInt(2);
 
@@ -109,7 +104,7 @@ class _CameraPageState extends State<CameraPage> {
                         aspectRatio: CameraAspectRatios.ratio_4_3),
                     //configuracion de la resolucion de la camara
                     imageAnalysisConfig: AnalysisConfig(
-                      // autoStart: false,
+                      autoStart: false,
                       androidOptions:
                           const AndroidAnalysisOptions.nv21(width: 250),
                       maxFramesPerSecond: 5,
@@ -117,15 +112,15 @@ class _CameraPageState extends State<CameraPage> {
                     ),
 
                     // metodo de analisis de face detection
-                    onImageForAnalysis:(image) async {
+                    onImageForAnalysis: (image) async {
                       // if(face.isEmpty) analysisController!.start();
-                      if(analyze) await  _analyzeImage(image);
+                      await _analyzeImage(image);
                     },
 
                     //dibujar encima de la camara
                     builder: (state, preview) {
-                    
-                      // if (face.isEmpty) analysisController!.start();
+                      analysisController = state.analysisController!;
+                      if (face.isEmpty) analysisController.start();
 
                       return const SizedBox();
                     }),
@@ -138,175 +133,106 @@ class _CameraPageState extends State<CameraPage> {
   }
 
   Future _analyzeImage(AnalysisImage image) async {
-  
     //conversion de imagen y llamada a provider
-    debugPrint('llamada: $llamada');
-    llamada++;
+    debugPrint('analisis: $analyze');
+    debugPrint('inicia analisis');
     final fDProvider =
         Provider.of<FaceDetectorProvider>(context, listen: false);
-    
+    if (fDProvider.isAlive) return;
+
     try {
       // face.clear();
       final inputImage = image.toInputImage();
       face = await faceDetector.processImage(inputImage);
-      debugPrint('face: $face');
-      
-      if (!hasId) {
+      if (await fDProvider.isFaceDetect(face)) {
+       
+        if (analyze) return;
+        debugPrint('Paso');
+        analyze = true;
+    
+
         if (face.isNotEmpty) {
-          setState(() {
-            hasId = true;
-            trackId = face.first.trackingId;
+     
+
+
+          await Future.delayed(Duration(milliseconds: 300), () async {
+
+
+            switch (fDProvider.numberTest) {
+              case 0:
+                
+                setState(() {
+                  message = 'Sonrie';
+                  isActive = true;
+                });
+                await Future.delayed(const Duration(milliseconds: 200), () async {
+                  debugPrint('testeando');
+                  // fDProvider.faceAction.addAll(await faceDetector.processImage(inputImage));
+                  for (int i = 0; i < 5; i++) {
+                    fDProvider.faceAction
+                        .addAll(await faceDetector.processImage(inputImage));
+                  }
+                });
+                await fDProvider.validateSmile();
+                debugPrint('finaliza');
+                break;
+
+              case 1:
+                setState(() {
+                  message = 'parpadea';
+                  isActive = true;
+                });
+                await Future.delayed(const Duration(seconds: 3), () async {
+                  debugPrint('testeando');
+                  // fDProvider.faceAction.addAll(await faceDetector.processImage(inputImage));
+                  for (int i = 0; i < 5; i++) {
+                    fDProvider.faceAction
+                        .addAll(await faceDetector.processImage(inputImage));
+                  }
+                });
+                await fDProvider.validateOpenEyes();
+                // await Future.delayed(Duration(seconds: 5));
+                // fDProvider.faceAction.addAll( await faceDetector.processImage(inputImage));
+                debugPrint('finaliza');
+                break;
+            }
+            //aqui se supone que va la navegacion en caso de que alive sea verdadero
+           
+            if (fDProvider.isAlive) {
+              debugPrint('aqui finalizó la prueba');
+            
+              // face = [];
+              fDProvider.faceAction = [];
+              fDProvider.color = Colors.white;
+              setState(() {
+                isActive = false;
+              });
+              analysisController.stop();
+              fDProvider.navigatoTo(context);
+
+              return;
+            }else{
+              analyze = false;
+              setState(() {
+                
+              isActive = false;
+              });
+              fDProvider.color = Colors.white;
+            }
           });
         }
-      }
-      if (face.isNotEmpty) {
-       
-        if (face.last.trackingId == trackId) {
-          // bool faceDetect = await fDProvider.isFaceDetect(face);
-          if (await fDProvider.isFaceDetect(face)) {
-            
-        switch (fDProvider.numberTest) {
-          case 0:
-          debugPrint('Entra al test 1');
-            setState(() {
-              message = 'Sonrie';
-              isActive = true;
-            });
-            fDProvider.faceAction = await faceDetector.processImage(inputImage);
-           await Future.delayed(const Duration(seconds: 5),  ()async {
-              setState(() {
-                analyze = false;
 
-              });
-              await fDProvider.validateSmile();
-              debugPrint('finaliza');
-
-            });
-            break;
-
-          case 1:
-            debugPrint('Entra al test 2');
-            setState(() {
-              message = 'parpadea';
-              isActive = true;
-            });
-            fDProvider.faceAction = await faceDetector.processImage(inputImage);
-            await Future.delayed(Duration(seconds: 5),()async{
-            setState(() {
-              analyze =false;
-            });
-                await fDProvider.validateOpenEyes();
-                debugPrint('finaliza');
-            });
-            break;
-
-          default:
-          debugPrint('Entra al test 3');
-             setState(() {
-              message = 'Sonrie';
-              isActive = true;
-            });
-            fDProvider.faceAction = await faceDetector.processImage(inputImage);
-            await Future.delayed(Duration(seconds: 5),  ()async {
-              setState(() {
-                analyze = false;
-              });
-
-
-                              await fDProvider.validateOpenEyes();
-              debugPrint('finaliza');
-             
-              
-            });
-            
-            break;
-        }
+        //si isAlive es false, de desbloquea el analisis nuevamente.
+      
+      }else{
+        setState(() {
+        isActive = false; 
+          
+        });
         
+        fDProvider.faceAction = [];
+      }
 
-
-           }}}
-      // debugPrint('cara: $face');
-
-      // bool faceDetect = await fDProvider.isFaceDetect(face);
-      // if(face.isNotEmpty){
-      // debugPrint('id: ${face.last.trackingId}');
-
-      // }
-      // if(faceDetect){
-
-      //   face.clear();
-      //   debugPrint('cara detectada');
-      //   fDProvider.faceAction.addAll(await faceDetector.processImage(inputImage));
-      //   debugPrint('caras: ${fDProvider.faceAction}');
-      //   setState(() {
-      //         message = 'Sonrie';
-      //         isActive = true;
-      //       });
-      //   await Future.delayed(Duration(seconds: 20));
-
-      // }
-
-      // if (faceDetect) {
-      //   fDProvider.faceAction.addAll(await faceDetector.processImage(inputImage));
-      //   switch (fDProvider.numberTest) {
-      //     case 0:
-      //       setState(() {
-      //         message = 'Sonrie';
-      //         isActive = true;
-      //       });
-      //       await Future.delayed(Duration(seconds: 10));
-      //       analysisController!.stop();
-      //       await fDProvider.validateSmile();
-      //       break;
-
-      //     case 1:
-      //       setState(() {
-      //         message = 'parpadea';
-      //         isActive = true;
-      //       });
-      //       await Future.delayed(Duration(seconds: 10));
-      //       analysisController!.stop();
-
-      //       fDProvider.validateOpenEyes(context);
-      //       break;
-
-      //     default:
-      //       setState(() {
-      //         message = 'Sonrie';
-      //         isActive = true;
-      //       });
-      //       await Future.delayed(Duration(seconds: 10));
-      //       analysisController!.stop();
-      //       await fDProvider.validateSmile();
-      //       break;
-      //   }
-      //   //  setState(() {
-      //   hasAnalize = true;
-      //       analyze = false;
-      //     });
-
-      // switch (fDProvider.numberTest) {
-      //   case 0:
-      //     // await Future.delayed(const Duration(seconds: 10), );
-      //     debugPrint('validacion 1');
-      //     await fDProvider.validateSmile();
-
-      //     break;
-      //   case 1:
-      //     // await Future.delayed(const Duration(seconds: 10), );
-      //     debugPrint('validacion 2');
-      //     await fDProvider.validateOpenEyes();
-
-      //     break;
-      //   default:
-      //     // await Future.delayed(const Duration(seconds: 10), );
-      //     debugPrint('validacion 1');
-      //     await fDProvider.validateSmile();
-
-      //     break;
-      // }
-      // debugPrint('Paso 4');
-    //   debugPrint('vivo: ${fDProvider.isAlive}');
     } catch (error) {
       debugPrint('Error:  $error');
     }

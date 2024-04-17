@@ -1,8 +1,8 @@
 import 'dart:io';
 import 'dart:math';
 
-import 'package:app_face/module/face_detect/utils/mlkit_utils.dart';
-import 'package:camerawesome/camerawesome_plugin.dart';
+// import 'package:app_face/module/face_detect/utils/mlkit_utils.dart';
+// import 'package:camerawesome/camerawesome_plugin.dart';
 import 'package:flutter/material.dart';
 import 'package:google_mlkit_face_detection/google_mlkit_face_detection.dart';
 import 'package:image_picker/image_picker.dart';
