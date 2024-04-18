@@ -1,4 +1,5 @@
 
+import 'dart:convert';
 import 'dart:math';
 
 import 'package:flutter/material.dart';
@@ -12,9 +13,9 @@ class FaceDetectorProvider extends ChangeNotifier {
     'widthMax': 610.0,
     'heigthaMin': 550.0,
     'heigthMax': 650.0,
-    'positionTopMin': 60.0,
-    'positionTopMax': 130.0,
-    'positionIzquierdaMin': 60.0,
+    'positionTopMin': 100.0,
+    'positionTopMax': 170.0,
+    'positionIzquierdaMin': 50.0,
     'positionIzquierdaMax': 120.0,
   };
 
@@ -30,10 +31,7 @@ class FaceDetectorProvider extends ChangeNotifier {
   
 
   Future<bool> isFaceDetect(List<Face> faces) async {
-    // double widthMin = requisitosRostro['widthMin'];
-    // double widthMax = requisitosRostro['widthMax'];
-    // double heigthaMin = requisitosRostro['heigthaMin'];
-    // double heigthMax = requisitosRostro['heigthMax'];
+   
     double positionTopMin = requisitosRostro['positionTopMin'];
     double positionTopMax = requisitosRostro['positionTopMax'];
     double positionLeftMin = requisitosRostro['positionIzquierdaMin'];
@@ -41,9 +39,10 @@ class FaceDetectorProvider extends ChangeNotifier {
 
     if (faces.isNotEmpty) {
       debugPrint('Paso 1 ok');
-     
+         debugPrint('CARA: ${faces.first.boundingBox}');
         debugPrint('paso 1.0:${faces.last.boundingBox.top} ');
         debugPrint('paso 1.1:${faces.last.boundingBox.left} ');
+     
         /*
             'positionTopMin': 60.0,
     'positionTopMax': 140.0,
