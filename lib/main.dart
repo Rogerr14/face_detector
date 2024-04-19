@@ -17,7 +17,7 @@ class MyApp extends StatelessWidget {
         title: 'Material App',
         initialRoute: AppRoute.initialroute,
         routes: AppRoute.routes,
-        onGenerateRoute: AppRoute.onGenerateRoute,
+        // onGenerateRoute: AppRoute.onGenerateRoute,
         // home: CameraPage()
         // home: ImageScanPage(),
       ),

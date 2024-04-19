@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math';
 // import 'dart:html';
 // import 'dart:math';
 // import 'dart:convert';
@@ -52,7 +53,7 @@ class _CameraPageState extends State<CameraPage> {
   late Future<bool> isReal;
   String message = '';
   List<Face> face = [];
-  bool isActive = false;
+  bool isActive = true;
   // bool hasId = false;
   // int? trackId;
   bool analyze = false;
@@ -64,6 +65,7 @@ class _CameraPageState extends State<CameraPage> {
     // final size = MediaQuery.of(context).size;
     final faceDetectorP =
         Provider.of<FaceDetectorProvider>(context, listen: false);
+        final size = MediaQuery.of(context).size;
 
     return  Scaffold(
       appBar: AppBar(title: Text('Liveness Test'),),
@@ -73,20 +75,16 @@ class _CameraPageState extends State<CameraPage> {
             children: [
               Padding(
                 padding: const EdgeInsets.symmetric(vertical: 20),
-                child: Visibility(visible: isActive, child: Text('Por favor, $message')),
+                child: Visibility(visible: faceDetectorP.isActive, child: (faceDetectorP.message == '') ? Container() : Text('Por favor, ${faceDetectorP.message}')),
               ),
-              (isActive) ? Container(): const SizedBox(height: 20,),
+              (faceDetectorP.isActive) ? Container(): const SizedBox(height: 20,),
               Container(
-                width: 200,
-                height: 250,
+                width: size.width * 0.8,
+                height: size.height * 0.5,
                 padding: const EdgeInsets.all(10),
-                decoration: BoxDecoration(
-                    color: faceDetectorP.color,
-                    borderRadius: BorderRadius.circular(120)),
+                
                 child: ClipRRect(
-                  borderRadius: const BorderRadius.vertical(
-                      top: Radius.elliptical(120, 120),
-                      bottom: Radius.elliptical(120, 120)),
+                  borderRadius: BorderRadius.circular(20),
                   child: CameraAwesomeBuilder.previewOnly(
                       progressIndicator: const Center(
                         child: CircularProgressIndicator(color: Colors.blue),
@@ -102,22 +100,36 @@ class _CameraPageState extends State<CameraPage> {
                         autoStart: false,
                         androidOptions:
                             const AndroidAnalysisOptions.nv21(width: 250),
-                        maxFramesPerSecond: 5,
+                        maxFramesPerSecond: 1,
                         cupertinoOptions: CupertinoAnalysisOptions.bgra8888(),
                       ),
-      
+                        
                       // metodo de analisis de face detection
-                      onImageForAnalysis: (image) => _analyzeImage(image),
-      
+                      onImageForAnalysis: (image) async {
+                        Future.delayed(const Duration(milliseconds:  500), (){
+                           _analyzeImage(image);
+                        });
+                        
+                      } ,
+                        
                       //dibujar encima de la camara
                       builder: (state, preview) {
                         analysisController = state.analysisController!;
-                        if (face.isEmpty) analysisController.start();
-      
                         return const SizedBox();
                       }),
                 ),
               ),
+
+              Padding(padding: 
+              const EdgeInsets.symmetric(vertical: 30, horizontal: 20),
+              child: OutlinedButton(child: const Text('Verificar'), onPressed: (!faceDetectorP.isActive) ? (){
+                faceDetectorP.numberTest= Random().nextInt(2);
+                analysisController.start();
+                
+                faceDetectorP.livenessTest();
+                debugPrint(faceDetectorP.message);
+                } : null,
+              ),)
             ],
           ),
         
@@ -125,97 +137,129 @@ class _CameraPageState extends State<CameraPage> {
     );
   }
 
+
+
+
+
+
+
+
   Future _analyzeImage(AnalysisImage image) async {
+
+    setState(() {
+      isActive =false;
+    });
+    final fDProvider = Provider.of<FaceDetectorProvider>(context, listen: false);
+try{
+    final inputImage = image.toInputImage();
+    fDProvider.faceAction.addAll(await faceDetector.processImage(inputImage));
+    debugPrint('caras: ${fDProvider.faceAction}');
+
+}catch (e){
+  throw Exception('error: $e');
+}
+
+    
+
     //llamada a provider
     
-    final fDProvider = Provider.of<FaceDetectorProvider>(context, listen: false);
-    if (fDProvider.isAlive) return;
+    // if (fDProvider.isAlive) return;
 
-      try {
-      // face.clear();
-          final inputImage = image.toInputImage();
-          face = await faceDetector.processImage(inputImage);
+    //   try {
+    //   // face.clear();
+    //       face = await faceDetector.processImage(inputImage);
      
-              if (await fDProvider.isFaceDetect(face)) {
-                if (analyze) return;
-                    analyze = true;
+    //           if (await fDProvider.isFaceDetect(face)) {
+    //             if (analyze){
+    //               debugPrint('se regresa');
+    //             return;
+    //             } 
+    //             debugPrint('no se regresa');
+    //                 analyze = true;
             
 
-                if (face.isNotEmpty) {
+    //             if (face.isNotEmpty) {
 
-                  await Future.delayed(const Duration(milliseconds: 300), () async {
+    //               await Future.delayed(const Duration(milliseconds: 300), () async {
 
 
-                      switch (fDProvider.numberTest) {
-                            case 0:
-                            setState(() {
-                              message = 'Sonrie';
-                              isActive = true;
-                            });
-                            await Future.delayed(const Duration(milliseconds: 200), () async {
+    //                   switch (fDProvider.numberTest) {
+    //                         case 0:
+    //                         setState(() {
+    //                           message = 'Sonrie';
+    //                           isActive = true;
+    //                         });
+    //                         await Future.delayed(const Duration(milliseconds: 200), () async {
 
-                              for (int i = 0; i < 5; i++) {
-                                fDProvider.faceAction
-                                    .addAll(await faceDetector.processImage(inputImage));
-                              }
-                            });
-                            await fDProvider.validateSmile();
-                            debugPrint('finaliza');
-                            break;
+    //                           for (int i = 0; i < 5; i++) {
+    //                             debugPrint( 'se agrega imagen sonrisa');
+    //                             fDProvider.faceAction
+    //                                 .addAll(await faceDetector.processImage(inputImage));
+    //                                 await Future.delayed(Duration(milliseconds: 500));
+    //                           }
+    //                         });
+    //                         await fDProvider.validateSmile();
+    //                         debugPrint('finaliza');
+    //                         break;
 
-                          case 1:
-                            setState(() {
-                              message = 'parpadea';
-                              isActive = true;
-                            });
-                            await Future.delayed(const Duration(milliseconds: 200), () async {
-                              debugPrint('testeando');
-                              for (int i = 0; i < 5; i++) {
-                                fDProvider.faceAction
-                                    .addAll(await faceDetector.processImage(inputImage));
-                              }
-                            });
-                            await fDProvider.validateOpenEyes();
-                            debugPrint('finaliza');
-                            break;
-                        }
-                    //aqui se supone que va la navegacion en caso de que alive sea verdadero
+    //                       case 1:
+    //                         setState(() {
+    //                           message = 'parpadea';
+    //                           isActive = true;
+    //                         });
+    //                         await Future.delayed(const Duration(milliseconds: 200), () async {
+
+    //                           for (int i = 0; i < 5; i++) {
+    //                             fDProvider.faceAction
+    //                                 .addAll(await faceDetector.processImage(inputImage));
+    //                                await Future.delayed(Duration(milliseconds: 500));
+
+    //                           }
+    //                         });
+    //                         await fDProvider.validateOpenEyes();
+    //                         debugPrint('finaliza');
+    //                         break;
+    //                     }
+    //                 //aqui se supone que va la navegacion en caso de que alive sea verdadero
                   
-                    if (fDProvider.isAlive) {
-                      face=[];
-                      fDProvider.faceAction = [];
-                      fDProvider.color = Colors.white;
-                      setState(() {
-                        isActive = false;
-                      });
-                      analysisController.stop();
-                      fDProvider.navigatoTo(context);
+    //                 if (fDProvider.isAlive) {
+    //                   face=[];
+    //                   fDProvider.faceAction = [];
+    //                   fDProvider.color = Colors.white;
+    //                   setState(() {
+    //                     isActive = false;
+    //                   });
+    //                   analysisController.stop();
+    //                   fDProvider.navigatoTo(context);
 
-                      return;
-                    }else{
-                      analyze = false;
-                      setState(() {
+    //                   return;
+    //                 }else{
+    //                   analyze = false;
+    //                   setState(() {
                         
-                      isActive = false;
-                      });
-                      fDProvider.color = Colors.white;
-                    }
-                  });
-                }
+    //                   isActive = false;
+    //                   });
+    //                   fDProvider.color = Colors.white;
+    //                   face = [];
+    //                 }
+    //               });
+    //             }
 
-                //si isAlive es false, de desbloquea el analisis nuevamente.
+    //             //si isAlive es false, de desbloquea el analisis nuevamente.
               
-              }else{
-                setState(() {
-                  isActive = false; 
-                  fDProvider.isAlive = false;
-                });
-                fDProvider.faceAction = [];
-              }
+    //           }else{
+    //             setState(() {
+    //               isActive = false; 
+    //               fDProvider.isAlive = false;
+    //             }); 
+    //             fDProvider.faceAction = [];
+    //             face = [];
+    //             return;
+    //           }
 
-    } catch (error) {
-      debugPrint('Error:  $error');
-    }
+    // } catch (error) {
+    //   debugPrint('Error:  $error');
+    // }
 
     //se agrega caras a la lista
   }

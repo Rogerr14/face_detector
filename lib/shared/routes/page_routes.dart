@@ -16,8 +16,8 @@ class AppRoute {
   } ;
 
 
-  static Route<dynamic> onGenerateRoute(RouteSettings settings){
-    return MaterialPageRoute(builder: (_) => const PageNotFound() ,);
-  }
+  // static Route<dynamic> onGenerateRoute(RouteSettings settings){
+  //   return MaterialPageRoute(builder: (_) => const PageNotFound() ,);
+  // }
 
 }
