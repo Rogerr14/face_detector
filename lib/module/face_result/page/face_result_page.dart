@@ -10,7 +10,7 @@ class FaceResultPage extends StatefulWidget {
 class _FaceResultPageState extends State<FaceResultPage> {
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return const Scaffold(
       body: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         crossAxisAlignment: CrossAxisAlignment.center,
