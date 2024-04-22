@@ -11,7 +11,7 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MultiProvider(
-      providers: [ChangeNotifierProvider(create: (context) => FaceDetectorProvider(),)],
+      providers: [ChangeNotifierProvider(create: (_) => FaceDetectorProvider(),)],
       child:  MaterialApp(
         debugShowCheckedModeBanner: false,
         title: 'Material App',
