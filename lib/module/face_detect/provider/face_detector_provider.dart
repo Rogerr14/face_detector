@@ -34,7 +34,7 @@ class FaceDetectorProvider extends ChangeNotifier {
     final faceDetector = FaceDetector(options: options);
     final inputImage = analysisImage.toInputImage();
     listFace = await faceDetector.processImage(inputImage);
-    // await Future.delayed(Duration(seconds: 1));
+    await Future.delayed(Duration(seconds: 1));
     streamFace.add(listFace);
     // debugPrint('caras: $listFace');
     notifyListeners();
@@ -90,9 +90,10 @@ class FaceDetectorProvider extends ChangeNotifier {
 
   void validateSmile() {
     streamFace.stream.listen((face) async {
-      await Future.delayed(Duration(seconds: 1));
+      
+      // await Future.delayed(Duration(seconds: 1));
       debugPrint('entra a stream');
-      if (counter != 0) {
+      if (counter != 1) {
         if (face.isNotEmpty) {
           if (face.last.smilingProbability! > 0.008) {
             debugPrint('Sonrisa valida');
