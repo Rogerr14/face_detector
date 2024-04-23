@@ -53,7 +53,7 @@ class FaceDetectorProvider extends ChangeNotifier {
     if (!isAnalyzing) {
       //Aqui inciar el tiempo, el scan, y el test
       analysisController?.start();
-      numberTest = Random().nextInt(2);
+      numberTest = Random().nextInt(3);
       livenessTest();
       notifyListeners();
     }
@@ -95,6 +95,8 @@ class FaceDetectorProvider extends ChangeNotifier {
       case 2:
         message = 'gire la cabeza a la izquierda';
         isActive = true;
+        validateTurnHead();
+        notifyListeners();
     }
   }
 
@@ -174,8 +176,44 @@ class FaceDetectorProvider extends ChangeNotifier {
     subscription?.cancel();
     subscription = streamFace.stream
     .take(15)
-    .listen((event) {
-      
+    .listen((face) {
+      if(face.isNotEmpty){
+        if(previousFace.isNotEmpty){
+          if(face.last.trackingId == idFace){
+            if(face.last.headEulerAngleY! > 30){
+
+              previousFace.clear();
+              isActive = false;
+              isAnalyzing = false;
+              result = true;
+              resultMessage = 'Esta vivo';
+              analysisController!.stop();
+              subscription?.cancel();
+              probability = 0;
+              debugPrint('analisis exitoso');
+              notifyListeners();
+            }
+            
+
+          }else{
+            debugPrint('cara no la misma');
+            previousFace.clear();
+            isActive = false;
+            isAnalyzing = false;
+            probability = 0;
+
+            analysisController!.stop();
+            subscription?.cancel();
+            debugPrint('analisis exitoso');
+            notifyListeners();
+          }
+            
+
+        }else{
+            idFace = face.last.trackingId!;
+        }
+        previousFace = face;
+      }
     },
     onDone: () {
       probability = 0;
