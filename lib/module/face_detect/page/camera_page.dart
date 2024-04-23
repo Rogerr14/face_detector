@@ -48,7 +48,7 @@ class _CameraPageState extends State<CameraPage> {
   Widget build(BuildContext context) {
     // final size = MediaQuery.of(context).size;
     final size = MediaQuery.of(context).size;
-      final  faceDetectorP = Provider.of<FaceDetectorProvider>(context);
+    final faceDetectorP = Provider.of<FaceDetectorProvider>(context);
 
     return Scaffold(
       appBar: AppBar(
@@ -62,20 +62,26 @@ class _CameraPageState extends State<CameraPage> {
               padding: const EdgeInsets.symmetric(vertical: 20),
               child: Visibility(
                   visible: faceDetectorP.isActive,
-                  child: Text('Por favor, ${faceDetectorP.message}')
-                  ),
+                  child: Text('Por favor, ${faceDetectorP.message}')),
             ),
             (faceDetectorP.isActive)
                 ? Container()
                 : const SizedBox(
                     height: 20,
                   ),
-                  AnimatedProgressBar(
-                          duration: const Duration(seconds: 15), value: (faceDetectorP.isActive) ? 0.0 :1.0,
-                          gradient: const LinearGradient(colors: [
-                            Colors.lightGreen,
-                            Colors.green,
-                          ]),),
+            AnimatedProgressBar(
+              duration: Duration(seconds: faceDetectorP.isActive ? 15 : 0),
+              value: (faceDetectorP.isActive) ? 0.0 : 1.0,
+              gradient: const LinearGradient(colors: [
+                Colors.lightGreen,
+                Colors.green,
+              ]),
+            ),
+            // (faceDetectorP.isActive)
+            //     ? Container()
+            //     : const SizedBox(
+            //         height: 20,
+            //       ),
             Container(
               width: size.width * 0.8,
               height: size.height * 0.5,
@@ -120,10 +126,14 @@ class _CameraPageState extends State<CameraPage> {
                     ? null
                     : () {
                         faceDetectorP.startLiveTest();
+                        faceDetectorP.result = false;
                       },
                 child: const Text('Verificar'),
               ),
-            )
+            ),
+            Visibility(
+                visible: faceDetectorP.result,
+                child: Text(faceDetectorP.resultMessage))
           ],
         ),
       ),

@@ -2,6 +2,7 @@
 // import 'dart:math';
 
 import 'dart:async';
+import 'dart:math';
 
 import 'package:app_face/module/face_detect/utils/mlkit_utils.dart';
 import 'package:camerawesome/camerawesome_plugin.dart';
@@ -12,31 +13,39 @@ import 'package:google_mlkit_face_detection/google_mlkit_face_detection.dart';
 
 class FaceDetectorProvider extends ChangeNotifier {
   List<Face> listFace = [];
+  List<Face> previousFace = [];
   final options = FaceDetectorOptions(
     enableContours: true,
     performanceMode: FaceDetectorMode.accurate,
     enableClassification: true,
     minFaceSize: 0.5,
-    enableLandmarks: true,
+    // enableLandmarks: true,
     enableTracking: true,
   );
   bool isAnalyzing = false;
+  bool isActive = false;
+  bool result = false;
+
+  // bool isAlive = false;
   AnalysisController? analysisController;
   String message = '';
+  String resultMessage = '';
   int numberTest = 0;
-  bool isActive = false;
-  bool isAlive = false;
-  Face? previousFace;
-  StreamController<List<Face>> streamFace = StreamController();
-  int counter = 14;
+  int idFace = 0;
+  double probability = 0;
+
+  // Face? previousFace;
+  StreamController<List<Face>> streamFace = StreamController.broadcast();
+  StreamSubscription<List<Face>>? subscription;
+  // int counter = 14;
 
   Future<void> analysisImage(AnalysisImage analysisImage) async {
     final faceDetector = FaceDetector(options: options);
     final inputImage = analysisImage.toInputImage();
     listFace = await faceDetector.processImage(inputImage);
-    await Future.delayed(Duration(seconds: 1));
+
     streamFace.add(listFace);
-    // debugPrint('caras: $listFace');
+    debugPrint('caras: $listFace');
     notifyListeners();
   }
 
@@ -44,6 +53,7 @@ class FaceDetectorProvider extends ChangeNotifier {
     if (!isAnalyzing) {
       //Aqui inciar el tiempo, el scan, y el test
       analysisController?.start();
+      numberTest = Random().nextInt(2);
       livenessTest();
       notifyListeners();
     }
@@ -71,15 +81,15 @@ class FaceDetectorProvider extends ChangeNotifier {
   Future<void> livenessTest() async {
     switch (numberTest) {
       case 0:
-        message = 'Parpadee';
+        message = 'Sonria';
         isActive = true;
         validateSmile();
         notifyListeners();
         break;
       case 1:
-        message = 'sonria';
+        message = 'Parpadee';
         isActive = true;
-
+        validateOpenEyes();
         notifyListeners();
         break;
       case 2:
@@ -88,59 +98,170 @@ class FaceDetectorProvider extends ChangeNotifier {
     }
   }
 
-  void validateSmile() {
-    streamFace.stream.listen((face) async {
-      
-      // await Future.delayed(Duration(seconds: 1));
-      debugPrint('entra a stream');
-      if (counter != 1) {
+  void validateOpenEyes() {
+    debugPrint('imprime una vez');
+        debugPrint('cara previa guardada: $previousFace');
+
+    subscription?.cancel();
+    subscription = streamFace.stream.take(15).listen(
+      (face) async {
+        debugPrint('analisis in progress..');
         if (face.isNotEmpty) {
-          if (face.last.smilingProbability! > 0.008) {
-            debugPrint('Sonrisa valida');
+          if (previousFace.isNotEmpty) {
+          if (face.last.trackingId == idFace) {
+            debugPrint('cara la misma');
+
+              if (face.last.leftEyeOpenProbability !=
+                      previousFace.last.leftEyeOpenProbability &&
+                  face.last.rightEyeOpenProbability !=
+                      previousFace.last.rightEyeOpenProbability) {
+                debugPrint('diferente');
+                probability += 0.2;
+              }
+            if (probability >= 0.8) {
+              previousFace.clear();
+              isActive = false;
+              isAnalyzing = false;
+              result = true;
+              resultMessage = 'Esta vivo';
+              analysisController!.stop();
+              subscription?.cancel();
+              probability = 0;
+              debugPrint('analisis exitoso');
+              notifyListeners();
+            }
+            //   if(face.last.smilingProbability! > 0.08){
+            //        isActive = false;
+            // isAnalyzing = false;
+            // analysisController!.stop();
+            //   subscription?.cancel();
+            //     debugPrint('analisis exitoso');
+            //   notifyListeners();
+            //   }
+            }
+          else {
+            previousFace.clear();
+            probability = 0;
+
             isActive = false;
             isAnalyzing = false;
             analysisController!.stop();
-            streamFace.isClosed;
+            subscription?.cancel();
+
             notifyListeners();
+            debugPrint('cara no la misma');
+          } 
+          }else{
+            idFace = face.last.trackingId!;
           }
-        } else {
-          counter--;
-          notifyListeners();
+          previousFace = face;
         }
-      } else {
-        debugPrint('time sonrisa out');
+      },
+      onDone: () {
+        previousFace.clear();
+        isActive = false;
+        probability = 0;
+        isAnalyzing = false;
+        analysisController!.stop();
+        subscription?.cancel();
+        notifyListeners();
+        debugPrint('analisis finalizado');
+      },
+    );
+  }
+
+  void validateTurnHead(){
+    subscription?.cancel();
+    subscription = streamFace.stream
+    .take(15)
+    .listen((event) {
+      
+    },
+    onDone: () {
+      probability = 0;
+
         isActive = false;
         isAnalyzing = false;
         analysisController!.stop();
-        streamFace.isClosed;
+        subscription?.cancel();
+        previousFace.clear();
         notifyListeners();
-      }
-    });
-    // subscription.pause();
+        debugPrint('analisis finalizado');
+    },
+    
+    );
 
-    // double smileProbability = 0.0;
-    // // double currrentSmileProbability = 0.0;
-    // // double previousSmileProbability = 0.0;
-    // if (listFace.length == 5) {
-    //   for (Face face in listFace) {
-    //     debugPrint('entra al test de sonrisa');
-    //     // if(previousFace != null){
-    //     debugPrint('test smile: ${face.smilingProbability}');
-    //     //
-    //     if (face.smilingProbability! > 0.008) {
-    //       debugPrint('Test smile passed');
-    //       smileProbability += 0.2;
-    //     } else {
-    //       smileProbability -= 0.2;
-    //     }
-    //     // }
-    //     // previousFace = face;
-    //   }
-    // }
-    //
   }
 
-  void navigatoTo(BuildContext context) {
-    Navigator.pushNamed(context, '/result');
+  void validateSmile() {
+    debugPrint('imprime una vez');
+    debugPrint('cara previa guardada: $previousFace');
+   
+    subscription?.cancel();
+    subscription = streamFace.stream.take(15).listen(
+      (face) async {
+        debugPrint('analisis in progress..');
+        if (face.isNotEmpty) {
+          debugPrint('cara previa: $previousFace');
+          if(previousFace.isNotEmpty){
+
+          if (face.last.trackingId == idFace) {
+            debugPrint('cara la misma');
+
+            debugPrint('smileProbability: ${listFace.last.smilingProbability}');
+
+            if (face.last.smilingProbability! > 0.08) {
+              probability += 0.2;
+            }
+            if (probability >= 0.8) {
+              previousFace.clear();
+              isActive = false;
+              isAnalyzing = false;
+              result = true;
+              resultMessage = 'Esta vivo';
+              analysisController!.stop();
+              subscription?.cancel();
+              probability = 0;
+              debugPrint('analisis exitoso');
+              notifyListeners();
+            }
+          } else {
+            debugPrint('cara no la misma');
+            previousFace.clear();
+            isActive = false;
+            isAnalyzing = false;
+            probability = 0;
+
+            analysisController!.stop();
+            subscription?.cancel();
+            debugPrint('analisis exitoso');
+            notifyListeners();
+          }
+          }else{
+            idFace = face.last.trackingId!;
+          }
+          previousFace = face;
+        }
+      },
+      onDone: () {
+        probability = 0;
+
+        isActive = false;
+        isAnalyzing = false;
+        analysisController!.stop();
+        subscription?.cancel();
+        previousFace.clear();
+        notifyListeners();
+        debugPrint('analisis finalizado');
+      },
+    );
   }
+
+  // void pauseSubscription() {
+  //   subscription?.cancel();
+  // }
+
+  // void navigatoTo(BuildContext context) {
+  //   Navigator.pushNamed(context, '/result');
+  // }
 }
